@@ -12,11 +12,11 @@ use crate::logger::LogsInstance;
 pub struct Utils;
 
 impl Utils {
-    pub fn move_item<P: AsRef<Path>>(from: P, to: P) -> io::Result<()> {
+    pub fn move_item(from: &Path, to: &Path) -> io::Result<()> {
         let from_path: &Path = from.as_ref();
         let to_dir: &Path = to.as_ref();
 
-        let file_name: &std::ffi::OsStr = from_path
+        let file_name = from_path
             .file_name()
             .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "Invalid source path"))?;
 
@@ -25,6 +25,14 @@ impl Utils {
         if let Some(parent) = to_path.parent() {
             if !parent.exists() {
                 fs::create_dir_all(parent)?;
+            }
+        }
+
+        if to_path.exists() {
+            if to_path.is_dir() {
+                fs::remove_dir_all(&to_path)?;
+            } else {
+                fs::remove_file(&to_path)?;
             }
         }
 
@@ -45,7 +53,7 @@ impl Utils {
         for entry_result in fs::read_dir(from)? {
             let entry = entry_result?;
             let path = entry.path();
-            let _ = Utils::move_item(path, to.to_path_buf());
+            let _ = Utils::move_item(path.as_path(), to);
         }
 
         Ok(())
@@ -390,6 +398,21 @@ impl Utils {
         let _ = Utils::move_items(&vintagestory_path, parent_dir);
 
         Ok(())
+    }
+
+    pub fn clear_temp(temp_dir: &Path, working_path: &Path) {
+        match Utils::move_items(&temp_dir, &working_path) {
+            Ok(_) => {}
+            Err(e) => {
+                LogsInstance::print(
+                    format!("Failed to move temp to working path: {}", e).as_str(),
+                    colored::Color::Red,
+                );
+                std::process::exit(1);
+            }
+        }
+
+        let _ = std::fs::remove_dir_all(&temp_dir);
     }
 }
 

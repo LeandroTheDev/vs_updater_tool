@@ -15,6 +15,7 @@ mod utils;
 const BASE_URL: &str = "https://cdn.vintagestory.at/gamefiles/stable/";
 
 fn main() {
+    #[cfg(windows)]
     match colored::control::set_virtual_terminal(true) {
         Ok(_) => {}
         Err(_) => eprintln!("Cannot enable virtual terminal"),
@@ -61,7 +62,7 @@ fn main() {
 
     Utils::check_temp_folder(&working_path);
 
-    let temp_dir = working_path.join(".temp");
+    let temp_dir: PathBuf = working_path.join(".temp");
 
     if let Err(e) = std::fs::create_dir_all(&temp_dir) {
         LogsInstance::print(
@@ -74,7 +75,8 @@ fn main() {
 
     if let Some(folders) = loaded_arguments.ignore_folders {
         for folder in folders {
-            if let Err(e) = Utils::move_item(Path::new(&folder), &temp_dir) {
+            let full_folder_path: PathBuf = working_path.join(&folder);
+            if let Err(e) = Utils::move_item(&full_folder_path, &temp_dir) {
                 LogsInstance::print(
                     format!("Cannot move folder to temp: {}", e).as_str(),
                     colored::Color::Red,
@@ -86,7 +88,8 @@ fn main() {
 
     if let Some(files) = loaded_arguments.ignore_files {
         for file in files {
-            if let Err(e) = Utils::move_item(Path::new(&file), &temp_dir) {
+            let full_file_path: PathBuf = working_path.join(&file);
+            if let Err(e) = Utils::move_item(&full_file_path, &temp_dir) {
                 LogsInstance::print(
                     format!("Cannot move file to temp: {}", e).as_str(),
                     colored::Color::Red,
@@ -116,7 +119,7 @@ fn main() {
 
     let game_type: String;
     if let Some(_type) = loaded_arguments.game_type {
-        game_type = _type;
+        game_type = Utils::get_game_type(&_type);
     } else {
         game_type = Utils::get_game_type(&String::from("server"));
     }
@@ -158,7 +161,12 @@ fn main() {
             if game_version.minor != actual_game_version.minor {
                 if game_version.major != actual_game_version.major {
                     LogsInstance::print(
-                        format!("Latest version avalaible: {}", last_version.to_string()).as_str(),
+                        format!(
+                            "Latest version available: {}, installed version: {}",
+                            last_version.to_string(),
+                            actual_game_version.to_string()
+                        )
+                        .as_str(),
                         colored::Color::BrightGreen,
                     );
                     break;
@@ -173,11 +181,13 @@ fn main() {
 
     if last_version.empty() {
         LogsInstance::print("No available versions found", colored::Color::Red);
+        Utils::clear_temp(&temp_dir, &working_path);
         std::process::exit(1);
     }
 
-    if last_version.equals(game_version) {
+    if last_version.equals(actual_game_version) {
         LogsInstance::print("No update needed! :D", colored::Color::BrightGreen);
+        Utils::clear_temp(&temp_dir, &working_path);
         std::process::exit(0);
     }
 
@@ -241,18 +251,7 @@ fn main() {
         colored::Color::White,
     );
 
-    match Utils::move_items(&temp_dir, &working_path) {
-        Ok(_) => {}
-        Err(e) => {
-            LogsInstance::print(
-                format!("Failed to move temp to working path: {}", e).as_str(),
-                colored::Color::Red,
-            );
-            std::process::exit(1);
-        }
-    }
-
-    let _ = std::fs::remove_dir_all(&temp_dir);
+    Utils::clear_temp(&temp_dir, &working_path);
     let _ = std::fs::remove_file(&compressed_version);
 
     LogsInstance::print(
