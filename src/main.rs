@@ -334,7 +334,13 @@ fn update_mods(loaded_arguments: &arguments::Items) {
                     Utils::get_mod_id(&path),
                 ) {
                     (Some(version), Some(id)) => (version, id),
-                    _ => continue,
+                    _ => {
+                        LogsInstance::print(
+                            format!("No modid.txt ignoring: {}", name.to_string_lossy()).as_str(),
+                            colored::Color::BrightWhite,
+                        );
+                        continue;
+                    }
                 };
 
                 // Downloading using the infinite version
@@ -418,9 +424,9 @@ fn update_mods(loaded_arguments: &arguments::Items) {
                             Some(ver) => ver,
                             None => {
                                 LogsInstance::print(
-                                    format!("Version not found in modinfo.json {}", path.display())
+                                    format!("Version not found in modinfo.json {}, version text will not be changed", path.display())
                                         .as_str(),
-                                    colored::Color::BrightRed,
+                                    colored::Color::BrightYellow,
                                 );
                                 continue;
                             }
@@ -454,7 +460,7 @@ fn update_mods(loaded_arguments: &arguments::Items) {
                 }
 
                 // For some reason if you download the file from any version that doesn't exist, it will return the last version
-                // ?????, this cannot work as the same way the game update
+                // ?????, this cannot work as the same way the game update (honestly this is good)
 
                 // Download using the check versions
                 {

@@ -326,6 +326,11 @@ impl Utils {
         if cfg!(target_os = "windows") {
             Utils::uncompress_windows(working_path)
         } else if cfg!(target_os = "linux") {
+            if let Some(ext) = working_path.extension() {
+                if ext.eq_ignore_ascii_case("zip") {
+                    return Utils::uncompress_linux_zip(working_path);
+                }
+            }
             Utils::uncompress_linux(working_path)
         } else {
             LogsInstance::print("Unkown system", colored::Color::BrightRed);
@@ -360,6 +365,32 @@ impl Utils {
         let vintagestory_path: PathBuf = parent_dir.join("vintagestory");
 
         let _ = Utils::move_items(&vintagestory_path, parent_dir);
+
+        Ok(())
+    }
+
+    pub fn uncompress_linux_zip(compressed_version: &Path) -> Result<(), String> {
+        if !compressed_version.exists() {
+            return Err(format!(
+                "File does not exist: {}",
+                compressed_version.display()
+            ));
+        }
+
+        let parent_dir = compressed_version
+            .parent()
+            .ok_or_else(|| "Failed to get parent directory".to_string())?;
+
+        let status = Command::new("unzip")
+            .arg(compressed_version.to_str().ok_or("Invalid file path")?)
+            .arg("-d")
+            .arg(parent_dir.to_str().ok_or("Invalid parent directory path")?)
+            .status()
+            .map_err(|e| format!("Failed to execute unzip: {}", e))?;
+
+        if !status.success() {
+            return Err(format!("unzip command failed with status: {}", status));
+        }
 
         Ok(())
     }
@@ -440,8 +471,10 @@ impl Utils {
 
         for line in reader.lines() {
             if let Ok(line) = line {
-                if line.trim_start().starts_with("\"version\"") {
-                    let parts: Vec<&str> = line.split(':').collect();
+                let line_trimmed = line.trim_start();
+                // Compara a versão em lowercase para case-insensitive
+                if line_trimmed.to_lowercase().starts_with("\"version\"") {
+                    let parts: Vec<&str> = line_trimmed.split(':').collect();
                     if parts.len() >= 2 {
                         let version_raw = parts[1].trim().trim_matches(',').trim_matches('"');
                         return Some(version_raw.to_string());
