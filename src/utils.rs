@@ -1,5 +1,8 @@
+use std::ffi::OsStr;
 use std::fs;
 use std::io;
+use std::io::BufRead;
+use std::io::BufReader;
 use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
@@ -87,7 +90,7 @@ impl Utils {
             if game_type == "client" {
                 LogsInstance::print(
                     "This update tool does not support windows client update, because there is only .exe installer in official repositories",
-                    colored::Color::Red,
+                    colored::Color::BrightRed,
                 );
                 std::process::exit(1);
             } else if game_type == "server" {
@@ -101,7 +104,7 @@ impl Utils {
             }
         }
 
-        LogsInstance::print("Unknown system or game type", colored::Color::Red);
+        LogsInstance::print("Unknown system or game type", colored::Color::BrightRed);
         std::process::exit(1);
     }
 
@@ -111,7 +114,7 @@ impl Utils {
         } else if cfg!(target_os = "linux") {
             String::from(".tar.gz")
         } else {
-            LogsInstance::print("Unkown system", colored::Color::Red);
+            LogsInstance::print("Unkown system", colored::Color::BrightRed);
             std::process::exit(1)
         }
     }
@@ -122,7 +125,7 @@ impl Utils {
         } else if cfg!(target_os = "linux") {
             Utils::url_exists_linux(url)
         } else {
-            LogsInstance::print("Unkown system", colored::Color::Red);
+            LogsInstance::print("Unkown system", colored::Color::BrightRed);
             std::process::exit(1)
         }
     }
@@ -164,7 +167,7 @@ impl Utils {
             if let Err(e) = io::stdout().flush() {
                 LogsInstance::print(
                     format!("Failed to flush stdout: {}", e).as_str(),
-                    colored::Color::Red,
+                    colored::Color::BrightRed,
                 );
                 std::process::exit(1)
             }
@@ -179,7 +182,7 @@ impl Utils {
                             Err(e) => {
                                 LogsInstance::print(
                                     format!("Failed to delete folder: {}", e).as_str(),
-                                    colored::Color::Red,
+                                    colored::Color::BrightRed,
                                 );
                                 std::process::exit(1)
                             }
@@ -191,7 +194,7 @@ impl Utils {
                 Err(e) => {
                     LogsInstance::print(
                         format!("Failed to read input: {}", e).as_str(),
-                        colored::Color::Red,
+                        colored::Color::BrightRed,
                     );
                     std::process::exit(1)
                 }
@@ -261,7 +264,7 @@ impl Utils {
         } else if cfg!(target_os = "linux") {
             Utils::download_file_linux(url, working_path)
         } else {
-            LogsInstance::print("Unkown system", colored::Color::Red);
+            LogsInstance::print("Unkown system", colored::Color::BrightRed);
             std::process::exit(1)
         }
     }
@@ -325,7 +328,7 @@ impl Utils {
         } else if cfg!(target_os = "linux") {
             Utils::uncompress_linux(working_path)
         } else {
-            LogsInstance::print("Unkown system", colored::Color::Red);
+            LogsInstance::print("Unkown system", colored::Color::BrightRed);
             std::process::exit(1)
         }
     }
@@ -406,13 +409,138 @@ impl Utils {
             Err(e) => {
                 LogsInstance::print(
                     format!("Failed to move temp to working path: {}", e).as_str(),
-                    colored::Color::Red,
+                    colored::Color::BrightRed,
                 );
                 std::process::exit(1);
             }
         }
 
         let _ = std::fs::remove_dir_all(&temp_dir);
+    }
+
+    pub fn get_mod_version(_: &PathBuf, mod_name: &OsStr) -> Option<String> {
+        let filename: &str = mod_name.to_str()?;
+
+        let trimmed: &str = if filename.ends_with(".zip") {
+            filename.strip_suffix(".zip")?
+        } else {
+            filename
+        };
+
+        let last_underscore: usize = trimmed.rfind('_')?;
+
+        let version: &str = &trimmed[last_underscore + 1..];
+
+        return Some(version.to_string());
+    }
+
+    pub fn get_version_from_modinfo(modinfo_path: &PathBuf) -> Option<String> {
+        let file: fs::File = fs::File::open(&modinfo_path).ok()?;
+        let reader: BufReader<fs::File> = BufReader::new(file);
+
+        for line in reader.lines() {
+            if let Ok(line) = line {
+                if line.trim_start().starts_with("\"version\"") {
+                    let parts: Vec<&str> = line.split(':').collect();
+                    if parts.len() >= 2 {
+                        let version_raw = parts[1].trim().trim_matches(',').trim_matches('"');
+                        return Some(version_raw.to_string());
+                    }
+                }
+            }
+        }
+
+        None
+    }
+
+    pub fn get_mod_id(mod_path: &PathBuf) -> Option<String> {
+        if mod_path.extension()? == "zip" {
+            LogsInstance::print(
+                "vs_updater does not support zip mods yet",
+                colored::Color::BrightYellow,
+            );
+            return None;
+        }
+
+        let mod_id_path: PathBuf = mod_path.join("modid.txt");
+
+        if !mod_id_path.exists() {
+            LogsInstance::print(
+                format!(
+                    "The mod {} does not have a modid.txt and cannot be updated",
+                    mod_path
+                        .file_name()
+                        .and_then(|f| f.to_str())
+                        .unwrap_or("<unknown>")
+                )
+                .as_str(),
+                colored::Color::BrightRed,
+            );
+            return None;
+        }
+
+        let contents: String = fs::read_to_string(mod_id_path).ok()?;
+
+        let trimmed: &str = contents.trim();
+
+        if trimmed.is_empty() {
+            return None;
+        }
+
+        Some(trimmed.to_string())
+    }
+
+    pub fn get_updated_path_from_version(
+        path: &PathBuf,
+        mod_name: &OsStr,
+        new_version: &str,
+    ) -> Option<PathBuf> {
+        let filename: &str = match mod_name.to_str() {
+            Some(name) => name,
+            None => {
+                LogsInstance::print(
+                    format!("Invalid file name (UTF-8): {:?}", mod_name).as_str(),
+                    colored::Color::BrightRed,
+                );
+                return None;
+            }
+        };
+
+        let trimmed = if filename.ends_with(".zip") {
+            match filename.strip_suffix(".zip") {
+                Some(t) => t,
+                None => {
+                    LogsInstance::print(
+                        format!("Error while removing the extension .zip from {}", filename)
+                            .as_str(),
+                        colored::Color::BrightRed,
+                    );
+                    return None;
+                }
+            }
+        } else {
+            filename
+        };
+
+        let last_underscore = match trimmed.rfind('_') {
+            Some(i) => i,
+            None => {
+                LogsInstance::print(
+                    format!("Mod does not contain '_' for versions: {}", trimmed).as_str(),
+                    colored::Color::BrightRed,
+                );
+                return None;
+            }
+        };
+
+        let prefix = &trimmed[..last_underscore];
+        let new_name = format!("{}_{}", prefix, new_version);
+        let new_path = path
+            .parent()
+            .unwrap_or_else(|| Path::new("."))
+            .join(&new_name);
+
+        Some(new_path)
     }
 }
 

@@ -1,19 +1,35 @@
 # Vintage Story Updater Tool
-- Linux Dependencies: ``wget``, ``tar``
-- Windows Dependencies: ``Invoke-WebRequest``, ``Expand-Archive``, ``curl``
+- Linux Dependencies: ``wget``, ``tar`` (Some distros does not have wget by default)
+- Windows Dependencies: ``Invoke-WebRequest``, ``Expand-Archive``, ``curl`` (Generally a fresh windows install contains all this features)
 
 ### Usage
 - Windows users: download the .exe, put it inside the your vintage story server folder, double click it to open, and should download it normally
 - Linux users: download the executable, put it inside your vintage story folder, open terminal inside that folder: ``./vs_updater_tool -- --game-type server`` if is a server or ``./vs_updater_tool -- --game-type client`` if is a client, and it should download it for you automatically
 
 ## Customization
-- ignore-folders: ``ServerData,ServerData2``, (Does not accept recursive)
-- > This will save the folders inside the .temp folder, and will be replaced after updating the game
-- ignore-files: ``start-server.sh,run.sh``, (Does not accept recursive)
+- ignore-folders: ``--ignore-folders ServerData,ServerData2``, (Does not accept recursive)
+- > This will save the folders inside the .temp folder, and will be replaced after updating the game (Does not accept recursive folders like ServerData/Mods)
+- ignore-files: ``--ignore-files start-server.sh,run.sh``, (Does not accept recursive)
 - > This will save the files inside the .temp folder, and will be replaced after updating the game
-- working-path: ``/home/user/vintagestory/``
-- > Currently vintagestory folder
-- game-type: ``server`` or ``client``
+- working-path: ``--working-path /home/user/vintagestory/``
+- > Currently vintagestory folder, if not set it will pickup from the system variable: ``VINTAGE_STORY`` or if also not exist it will use the same folder from executable
+- game-type: ``--game-type server`` or ``--game-type client``
 - > Select the game type, only a server or entire game as client
+- ignore-game-update: ``--ignore-mod-update``
+- > Ignore update of the game
+- ignore-mod-update: ``--ignore-mod-update``
+- > Ignore mods update
+- mods-path: ``--mods-path /home/user/vintagestory/ServerData/Mods/``
+- > Currently mods path to be updated, required if you are updating mods
 
-Full example: ``./vs_updater_tool -- --ignore-folders /home/user/vintagestory/ServerData,/home/user/vintagestory/ServerData2 --ignore-files /home/user/vintagestory/start-server.sh,/home/user/vintagestory/run.sh --working-path /home/user/vintagestory/ --game-type client``
+## Mod Update
+Mod update will always update all mods from vs database
+
+Only works for decompressed mods and with the modid available
+
+## Examples
+Full example: ``./vs_updater_tool -- --ignore-folders ServerData,ServerData2 --ignore-files start-server.sh,run.sh --working-path /home/user/vintagestory/ --game-type server --mods-path /home/user/vintagestory/ServerData/Mods/``
+
+No mods example: ``./vs_updater_tool -- --ignore-folders ServerData,ServerData2 --ignore-files start-server.sh,run.sh --working-path /home/user/vintagestory/ --game-type server --ignore-mod-update``
+
+Only mods example: ``./vs_updater_tool -- --ignore-folders ServerData,ServerData2 --ignore-files start-server.sh,run.sh --working-path /home/user/vintagestory/ --game-type server --ignore-game-update --mods-path /home/user/vintagestory/ServerData/Mods/``

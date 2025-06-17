@@ -14,4 +14,13 @@ pub(crate) struct Items {
 
     #[arg(long)]
     pub game_type: Option<String>,
+
+    #[arg(long)]
+    pub ignore_game_update: bool,
+
+    #[arg(long)]
+    pub ignore_mod_update: bool,
+
+    #[arg(long)]
+    pub mods_path: Option<String>,
 }
