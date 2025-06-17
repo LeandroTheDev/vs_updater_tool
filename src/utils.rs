@@ -169,7 +169,7 @@ impl Utils {
                     format!("Failed to flush stdout: {}", e).as_str(),
                     colored::Color::BrightRed,
                 );
-                std::process::exit(1)
+                return;
             }
 
             let mut input = String::new();
@@ -184,11 +184,11 @@ impl Utils {
                                     format!("Failed to delete folder: {}", e).as_str(),
                                     colored::Color::BrightRed,
                                 );
-                                std::process::exit(1)
+                                return;
                             }
                         }
                     } else {
-                        std::process::exit(0)
+                        return;
                     }
                 }
                 Err(e) => {
@@ -196,7 +196,7 @@ impl Utils {
                         format!("Failed to read input: {}", e).as_str(),
                         colored::Color::BrightRed,
                     );
-                    std::process::exit(1)
+                    return;
                 }
             }
         }
@@ -442,7 +442,7 @@ impl Utils {
                     format!("Failed to move temp to working path: {}", e).as_str(),
                     colored::Color::BrightRed,
                 );
-                std::process::exit(1);
+                return;
             }
         }
 

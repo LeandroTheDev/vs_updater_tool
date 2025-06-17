@@ -48,7 +48,7 @@ fn update_game(loaded_arguments: &arguments::Items) {
                 format!("The working-path: {}, is invalid", path).as_str(),
                 colored::Color::BrightRed,
             );
-            std::process::exit(1);
+            return;
         }
     } else {
         match env::var("VINTAGE_STORY") {
@@ -82,7 +82,7 @@ fn update_game(loaded_arguments: &arguments::Items) {
             colored::Color::BrightRed,
         );
 
-        std::process::exit(1);
+        return;
     }
 
     if let Some(folders) = &loaded_arguments.ignore_folders {
@@ -93,7 +93,7 @@ fn update_game(loaded_arguments: &arguments::Items) {
                     format!("Cannot move folder to temp: {}", e).as_str(),
                     colored::Color::BrightRed,
                 );
-                std::process::exit(1);
+                return;
             }
         }
     }
@@ -106,27 +106,31 @@ fn update_game(loaded_arguments: &arguments::Items) {
                     format!("Cannot move file to temp: {}", e).as_str(),
                     colored::Color::BrightRed,
                 );
-                std::process::exit(1);
+                return;
             }
         }
     }
 
     let mut game_version: GameVersion;
     if let Some(version) = Utils::get_game_version(&working_path) {
-        game_version = GameVersion::from_str(&version).unwrap_or_else(|| -> GameVersion {
-            LogsInstance::print(
-                format!("Invalid game version: {}", version).as_str(),
-                colored::Color::BrightRed,
-            );
-            std::process::exit(1)
-        });
+        game_version = match GameVersion::from_str(&version) {
+            Some(ver) => ver,
+            None => {
+                LogsInstance::print(
+                    format!("Invalid game version: {}", version).as_str(),
+                    colored::Color::BrightRed,
+                );
+                return;
+            }
+        };
     } else {
         LogsInstance::print(
-            "Unkown game version, add a file in assets/version-1.0.0.txt",
+            "Unknown game version, add a file in assets/version-1.0.0.txt",
             colored::Color::BrightRed,
         );
-        std::process::exit(1);
+        return;
     }
+
     let actual_game_version: GameVersion = game_version.clone();
 
     let game_type: String;
@@ -194,13 +198,13 @@ fn update_game(loaded_arguments: &arguments::Items) {
     if last_version.empty() {
         LogsInstance::print("No available versions found", colored::Color::BrightRed);
         Utils::clear_temp(&temp_dir, &working_path);
-        std::process::exit(1);
+        return;
     }
 
     if last_version.equals(actual_game_version) {
         LogsInstance::print("No update needed! :D", colored::Color::BrightGreen);
         Utils::clear_temp(&temp_dir, &working_path);
-        std::process::exit(0);
+        return;
     }
 
     let url_download: String = format!(
@@ -229,7 +233,7 @@ fn update_game(loaded_arguments: &arguments::Items) {
                 format!("Failed to clean working path: {}", e).as_str(),
                 colored::Color::BrightRed,
             );
-            std::process::exit(1);
+            return;
         }
     }
 
@@ -241,7 +245,7 @@ fn update_game(loaded_arguments: &arguments::Items) {
                 format!("Failed to download the version: {}", e).as_str(),
                 colored::Color::BrightRed,
             );
-            std::process::exit(1);
+            return;
         }
     }
 
@@ -254,7 +258,7 @@ fn update_game(loaded_arguments: &arguments::Items) {
                 format!("Failed to uncompress: {}", e).as_str(),
                 colored::Color::BrightRed,
             );
-            std::process::exit(1);
+            return;
         }
     }
 
@@ -363,7 +367,7 @@ fn update_mods(loaded_arguments: &arguments::Items) {
                                 format!("Failed to clean mod data: {}", e).as_str(),
                                 colored::Color::BrightRed,
                             );
-                            std::process::exit(1);
+                            continue;
                         }
                     }
 
@@ -419,18 +423,19 @@ fn update_mods(loaded_arguments: &arguments::Items) {
                         }
                     }
 
-                    let downloaded_version: String =
-                        match Utils::get_version_from_modinfo(&path.join("modinfo.json")) {
-                            Some(ver) => ver,
-                            None => {
-                                LogsInstance::print(
+                    let downloaded_version: String = match Utils::get_version_from_modinfo(
+                        &path.join("modinfo.json"),
+                    ) {
+                        Some(ver) => ver,
+                        None => {
+                            LogsInstance::print(
                                     format!("Version not found in modinfo.json {}, version text will not be changed", path.display())
                                         .as_str(),
                                     colored::Color::BrightYellow,
                                 );
-                                continue;
-                            }
-                        };
+                            continue;
+                        }
+                    };
 
                     let new_path: PathBuf = match Utils::get_updated_path_from_version(
                         &path,
