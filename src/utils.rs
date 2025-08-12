@@ -10,6 +10,8 @@ use std::process::Command;
 use std::thread;
 use std::time::Duration;
 
+use regex::Regex;
+
 use crate::logger::LogsInstance;
 
 pub struct Utils;
@@ -152,6 +154,65 @@ impl Utils {
             Ok(result) => result.status.success(),
             Err(_) => false,
         }
+    }
+
+    pub fn url_result(url: &str) -> Option<String> {
+        if cfg!(target_os = "windows") {
+            Utils::url_result_windows(url)
+        } else if cfg!(target_os = "linux") {
+            Utils::url_result_linux(url)
+        } else {
+            LogsInstance::print("Unkown system", colored::Color::BrightRed);
+            std::process::exit(1)
+        }
+    }
+
+    fn url_result_linux(url: &str) -> Option<String> {
+        let output = Command::new("wget")
+            .arg("-q") // Quiet mode, no logs
+            .arg("-O") // Output for stdout
+            .arg("-") // "-" stdout
+            .arg(url)
+            .output();
+
+        match output {
+            Ok(result) => {
+                if result.status.success() {
+                    // Byte to string
+                    String::from_utf8(result.stdout).ok()
+                } else {
+                    None
+                }
+            }
+            Err(_) => None,
+        }
+    }
+
+    fn url_result_windows(url: &str) -> Option<String> {
+        let output = Command::new("curl")
+            .arg("-s") // Silent mode, no progress
+            .arg(url)
+            .output();
+
+        match output {
+            Ok(result) => {
+                if result.status.success() {
+                    String::from_utf8(result.stdout).ok()
+                } else {
+                    None
+                }
+            }
+            Err(_) => None,
+        }
+    }
+
+    pub fn extract_download_links(html: &str) -> Vec<String> {
+        let re = Regex::new(r#"href="(/download/[^"]*)""#).unwrap();
+
+        re.captures_iter(html)
+            .filter_map(|cap| cap.get(1))
+            .map(|m| m.as_str().to_string())
+            .collect()
     }
 
     pub fn check_temp_folder(working_path: &Path) {
@@ -465,6 +526,20 @@ impl Utils {
         return Some(version.to_string());
     }
 
+    pub fn extract_id_and_filename(link: &str) -> Option<(String, String)> {
+        // Expected: "/download/fileid/filename_fileversion.zip"
+        let parts: Vec<&str> = link.split('/').collect();
+
+        // Expected at least 4 parts: "", "download", "ID", "filename"
+        if parts.len() >= 4 {
+            let id: String = parts[2].to_string();
+            let filename: String = parts[3].to_string();
+            Some((id, filename))
+        } else {
+            None
+        }
+    }
+
     pub fn get_version_from_modinfo(modinfo_path: &PathBuf) -> Option<String> {
         let file: fs::File = fs::File::open(&modinfo_path).ok()?;
         let reader: BufReader<fs::File> = BufReader::new(file);
@@ -514,13 +589,50 @@ impl Utils {
 
         let contents: String = fs::read_to_string(mod_id_path).ok()?;
 
-        let trimmed: &str = contents.trim();
+        // First line only
+        let first_non_empty_line = contents
+            .lines()
+            .map(|line| line.trim())
+            .find(|line| !line.is_empty())?;
 
-        if trimmed.is_empty() {
+        Some(first_non_empty_line.to_string())
+    }
+
+    pub fn get_mod_fileid(mod_path: &PathBuf) -> Option<String> {
+        if mod_path.extension()? == "zip" {
+            LogsInstance::print(
+                "vs_updater does not support zip mods yet",
+                colored::Color::BrightYellow,
+            );
             return None;
         }
 
-        Some(trimmed.to_string())
+        let mod_id_path: PathBuf = mod_path.join("modid.txt");
+
+        if !mod_id_path.exists() {
+            LogsInstance::print(
+                format!(
+                    "The mod {} does not have a modid.txt and cannot be updated",
+                    mod_path
+                        .file_name()
+                        .and_then(|f| f.to_str())
+                        .unwrap_or("<unknown>")
+                )
+                .as_str(),
+                colored::Color::BrightRed,
+            );
+            return None;
+        }
+
+        let contents: String = fs::read_to_string(mod_id_path).ok()?;
+
+        // 2 Line only
+        let mut non_empty_lines = contents
+            .lines()
+            .map(|line| line.trim())
+            .filter(|line| !line.is_empty());
+
+        non_empty_lines.nth(1).map(|line| line.to_string())
     }
 
     pub fn get_updated_path_from_version(

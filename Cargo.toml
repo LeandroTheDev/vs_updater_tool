@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 clap = { version = "4.5.36", features = ["derive"] }
 colored = "3.0.0"
+regex = "1"
 
 [profile.release]
 opt-level = "z"

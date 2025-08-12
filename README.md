@@ -21,15 +21,24 @@
 - > Ignore mods update
 - mods-path: ``--mods-path /home/user/vintagestory/ServerData/Mods/``
 - > Currently mods path to be updated, required if you are updating mods
+- force-url: ``--force-url "https://cdn.vintagestory.at/gamefiles/unstable/vs_server_linux-x64_1.21.0-rc.4.tar.gz"``
+- > Force update the game to a specific download url, used for downloading from other sources or beta versions
+- no-pre-mods: ``--no-pre-mods``
+- > Ignore unstable versions of mods
 
 ## Mod Update
-To automatically update the mods you will need to get the id from the mod in vs database, the easy way to get the id is to go to the files section from the mod and copy the link from the download button like that: ``https://mods.vintagestory.at/download/45687/rpgoverlay_1.0.1.zip``, the ``45687`` is the mod id, copy that and go to ``mods-path`` and create a new folder for example: ``rpgoverlay_1.0.0`` and create a new file inside that folder: ``modid.txt`` paste the mod id inside that folder, now that mod will be automatically updated when running the executable
+To automatically update the mods you will need to get the id from the mod in vs database, the easy way to get the id is to go to the files section from the mod and copy the link from the download button like that: ``https://mods.vintagestory.at/rpgoverlay``, the ``rpgoverlay`` is the mod id, copy that and go to ``mods-path`` and create a new folder for example: ``rpgoverlay_1.0.0`` and create a new file inside that folder: ``modid.txt`` paste the mod id inside that folder, now that mod will be automatically updated when running the executable
 
 ```
-- /home/user/vintagestory/ServerData/Mods
--- rpgoverlay_1.0.0
---- modid.txt -> 45687
+-> /home/user/vintagestory/ServerData/Mods
+--> rpgoverlay_1.0.0
+---> modid.txt
 ```
+```
+rpgoverlay
+0
+```
+- The ``modid.txt`` contains: modid and fileid, must be exactly that way
 
 ## Examples
 Full example: ``./vs_updater_tool -- --ignore-folders ServerData,ServerData2 --ignore-files start-server.sh,run.sh --working-path /home/user/vintagestory/ --game-type server --mods-path /home/user/vintagestory/ServerData/Mods/``

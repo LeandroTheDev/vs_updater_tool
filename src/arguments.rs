@@ -23,4 +23,10 @@ pub(crate) struct Items {
 
     #[arg(long)]
     pub mods_path: Option<String>,
+
+    #[arg(long)]
+    pub force_url: Option<String>,
+
+    #[arg(long)]
+    pub no_pre_mods: bool,
 }
