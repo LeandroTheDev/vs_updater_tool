@@ -305,7 +305,10 @@ fn update_mods(loaded_arguments: &arguments::Items) {
         let path: &Path = Path::new(mods_path);
 
         if !path.is_dir() {
-            LogsInstance::print("--mods-path is not valid", colored::Color::BrightRed);
+            LogsInstance::print(
+                format!("--mods-path is not valid, {}", path.to_str().unwrap()).as_str(),
+                colored::Color::BrightRed,
+            );
             return;
         }
 
@@ -341,20 +344,22 @@ fn update_mods(loaded_arguments: &arguments::Items) {
                     colored::Color::BrightWhite,
                 );
 
-                let (_, str_id, str_fileid) = match (
-                    Utils::get_mod_version(&path, name),
-                    Utils::get_mod_id(&path),
-                    Utils::get_mod_fileid(&path),
-                ) {
-                    (Some(version), Some(id), Some(fileid)) => (version, id, fileid),
-                    _ => {
-                        LogsInstance::print(
-                            format!("No modid.txt ignoring: {}", name.to_string_lossy()).as_str(),
-                            colored::Color::BrightWhite,
-                        );
-                        continue;
-                    }
-                };
+                let (str_id, str_fileid) =
+                    match (Utils::get_mod_id(&path), Utils::get_mod_fileid(&path)) {
+                        (Some(id), Some(fileid)) => (id, fileid),
+                        _ => {
+                            LogsInstance::print(
+                                format!("No modid.txt ignoring: {}", name.to_string_lossy())
+                                    .as_str(),
+                                colored::Color::BrightWhite,
+                            );
+                            LogsInstance::print(
+                                "-----------------------------",
+                                colored::Color::BrightWhite,
+                            );
+                            continue;
+                        }
+                    };
 
                 let ping_url: String = format!("{}{}", MODS_URL, str_id);
 
@@ -416,6 +421,10 @@ fn update_mods(loaded_arguments: &arguments::Items) {
                                         .as_str(),
                                     colored::Color::Green,
                                 );
+                                LogsInstance::print(
+                                    "-----------------------------",
+                                    colored::Color::BrightWhite,
+                                );
                                 continue;
                             }
                         }
@@ -427,6 +436,10 @@ fn update_mods(loaded_arguments: &arguments::Items) {
                         format!("File id parse failed for: {}", mods_path).as_str(),
                         colored::Color::BrightRed,
                     );
+                    LogsInstance::print(
+                        "-----------------------------",
+                        colored::Color::BrightWhite,
+                    );
                     continue;
                 }
 
@@ -436,6 +449,10 @@ fn update_mods(loaded_arguments: &arguments::Items) {
                     LogsInstance::print(
                         format!("File name parse failed for: {}", mods_path).as_str(),
                         colored::Color::BrightRed,
+                    );
+                    LogsInstance::print(
+                        "-----------------------------",
+                        colored::Color::BrightWhite,
                     );
                     continue;
                 }
@@ -453,6 +470,10 @@ fn update_mods(loaded_arguments: &arguments::Items) {
                         "No connection or the mod does no longer exist",
                         colored::Color::BrightRed,
                     );
+                    LogsInstance::print(
+                        "-----------------------------",
+                        colored::Color::BrightWhite,
+                    );
                     continue;
                 }
 
@@ -462,6 +483,10 @@ fn update_mods(loaded_arguments: &arguments::Items) {
                         LogsInstance::print(
                             format!("Failed to clean mod data: {}", e).as_str(),
                             colored::Color::BrightRed,
+                        );
+                        LogsInstance::print(
+                            "-----------------------------",
+                            colored::Color::BrightWhite,
                         );
                         continue;
                     }
@@ -475,6 +500,10 @@ fn update_mods(loaded_arguments: &arguments::Items) {
                             format!("Failed to download the version: {}", e).as_str(),
                             colored::Color::BrightRed,
                         );
+                        LogsInstance::print(
+                            "-----------------------------",
+                            colored::Color::BrightWhite,
+                        );
                         continue;
                     }
                 }
@@ -487,6 +516,10 @@ fn update_mods(loaded_arguments: &arguments::Items) {
                         LogsInstance::print(
                             format!("Failed to uncompress: {}", e).as_str(),
                             colored::Color::BrightRed,
+                        );
+                        LogsInstance::print(
+                            "-----------------------------",
+                            colored::Color::BrightWhite,
                         );
                         continue;
                     }
@@ -531,6 +564,10 @@ fn update_mods(loaded_arguments: &arguments::Items) {
                                     .as_str(),
                                 colored::Color::BrightYellow,
                             );
+                        LogsInstance::print(
+                            "-----------------------------",
+                            colored::Color::BrightWhite,
+                        );
                         continue;
                     }
                 };
@@ -546,6 +583,10 @@ fn update_mods(loaded_arguments: &arguments::Items) {
                             format!("Cannot get updated mod name: {}", path.display()).as_str(),
                             colored::Color::BrightRed,
                         );
+                        LogsInstance::print(
+                            "-----------------------------",
+                            colored::Color::BrightWhite,
+                        );
                         continue;
                     }
                 };
@@ -560,6 +601,8 @@ fn update_mods(loaded_arguments: &arguments::Items) {
                         colored::Color::BrightRed,
                     ),
                 }
+
+                LogsInstance::print("-----------------------------", colored::Color::BrightWhite);
             }
         }
     }
