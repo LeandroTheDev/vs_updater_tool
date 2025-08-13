@@ -131,10 +131,6 @@ fn update_game(loaded_arguments: &arguments::Items) {
         return;
     }
 
-    if loaded_arguments.no_pre {
-        game_version.remove_pre_and_rc();
-    }
-
     let actual_game_version: GameVersion = game_version.clone();
 
     let game_type: String;
@@ -154,6 +150,8 @@ fn update_game(loaded_arguments: &arguments::Items) {
         .as_str(),
         colored::Color::White,
     );
+
+    game_version.remove_pre_and_rc();
 
     let url_download: String;
     let mut last_version: GameVersion = GameVersion::from_str("0.0.0").unwrap();
@@ -227,35 +225,86 @@ fn update_game(loaded_arguments: &arguments::Items) {
                         game_version.increment_minor();
                     }
                 } else {
-                    if game_version.pre_version != actual_game_version.pre_version {
-                        if game_version.rc_version != actual_game_version.rc_version {
-                            if game_version.minor != actual_game_version.minor {
-                                if game_version.major != actual_game_version.major {
-                                    LogsInstance::print(
-                                        format!(
-                                            "Latest version available: {}, installed version: {}",
-                                            last_version.to_string(),
-                                            actual_game_version.to_string()
-                                        )
-                                        .as_str(),
-                                        colored::Color::BrightGreen,
-                                    );
-                                    break;
-                                } else {
-                                    game_version.increment_major();
-                                }
-                            } else {
-                                game_version.increment_minor();
-                            }
+                    if game_version.minor != actual_game_version.minor {
+                        if game_version.major != actual_game_version.major {
+                            LogsInstance::print(
+                                format!(
+                                    "Latest version available: {}, installed version: {}",
+                                    last_version.to_string(),
+                                    actual_game_version.to_string()
+                                )
+                                .as_str(),
+                                colored::Color::BrightGreen,
+                            );
+                            break;
                         } else {
-                            game_version.increment_rc();
+                            game_version.increment_major();
                         }
                     } else {
-                        game_version.increment_pre();
+                        game_version.increment_minor();
                     }
                 }
             }
         }
+
+        if !loaded_arguments.no_pre {
+            // No release available to update
+            if last_version.empty() {
+                // Checking for unstable on actual game version
+                if actual_game_version.is_pre() || actual_game_version.is_rc() {
+                    game_version = actual_game_version.clone();
+                }
+                // Actual version is not unstable
+                else {
+                    game_version = actual_game_version.clone();
+                    game_version.increment_minor();
+                    game_version.increment_pre();
+                }
+            }
+            // Final release, increase minor for checking unstables
+            else {
+                game_version = last_version.clone();
+                game_version.increment_minor();
+                game_version.increment_pre();
+            }
+
+            loop {
+                let ping_url: String = format!(
+                    "{}unstable/{}{}{}",
+                    BASE_URL,
+                    game_type,
+                    game_version.to_string(),
+                    Utils::get_compress_type()
+                );
+
+                LogsInstance::print(
+                    format!("Pinging: {}", ping_url).as_str(),
+                    colored::Color::White,
+                );
+
+                if Utils::url_exists(&ping_url) {
+                    LogsInstance::print(
+                        format!("Unstable Version available: {}", game_version.to_string())
+                            .as_str(),
+                        colored::Color::BrightGreen,
+                    );
+                    last_version = game_version.clone();
+
+                    if game_version.is_rc() {
+                        game_version.increment_rc();
+                    } else {
+                        game_version.increment_pre();
+                    }
+                } else {
+                    if game_version.is_pre() {
+                        game_version.increment_rc();
+                    } else {
+                        break;
+                    }
+                }
+            }
+        }
+
         if last_version.empty() {
             LogsInstance::print("No available versions found", colored::Color::BrightRed);
             Utils::clear_temp(&temp_dir, &working_path);
@@ -275,13 +324,23 @@ fn update_game(loaded_arguments: &arguments::Items) {
             return;
         }
 
-        url_download = format!(
-            "{}{}{}{}",
-            BASE_URL,
-            game_type,
-            last_version.to_string(),
-            Utils::get_compress_type()
-        );
+        if last_version.is_pre() || last_version.is_rc() {
+            url_download = format!(
+                "{}unstable/{}{}{}",
+                BASE_URL,
+                game_type,
+                last_version.to_string(),
+                Utils::get_compress_type()
+            );
+        } else {
+            url_download = format!(
+                "{}stable/{}{}{}",
+                BASE_URL,
+                game_type,
+                last_version.to_string(),
+                Utils::get_compress_type()
+            );
+        }
     }
 
     LogsInstance::print(
@@ -317,8 +376,6 @@ fn update_game(loaded_arguments: &arguments::Items) {
             return;
         }
     }
-
-    LogsInstance::print("File downloaded, decompressing...", colored::Color::White);
 
     match Utils::uncompress(&compressed_version) {
         Ok(_) => {}
@@ -426,7 +483,7 @@ fn update_mods(loaded_arguments: &arguments::Items) {
 
                 LogsInstance::print(
                     format!("Pinging: {}", ping_url).as_str(),
-                    colored::Color::White,
+                    colored::Color::BrightWhite,
                 );
 
                 let mut biggest_id: Option<i64> = None;

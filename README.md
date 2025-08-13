@@ -1,6 +1,6 @@
 # Vintage Story Updater Tool
 - Linux Dependencies: ``wget``, ``tar``, ``unzip`` (Some distros does not have wget/unzip by default)
-- Windows Dependencies: ``Invoke-WebRequest``, ``Expand-Archive``, ``curl`` (Generally a fresh windows install contains all this features)
+- Windows Dependencies: ``Invoke-WebRequest``, ``Expand-Archive`` (Generally a fresh windows install contains all this features)
 
 ## Compatibility
 - Windows (Servers Only)

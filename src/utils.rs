@@ -233,10 +233,10 @@ impl Utils {
                 return;
             }
 
-            let mut input = String::new();
+            let mut input: String = String::new();
             match io::stdin().read_line(&mut input) {
                 Ok(_) => {
-                    let input = input.trim().to_lowercase();
+                    let input: String = input.trim().to_lowercase();
                     if input == "y" {
                         match fs::remove_dir_all(&temp_path) {
                             Ok(_) => {}
@@ -249,7 +249,7 @@ impl Utils {
                             }
                         }
                     } else {
-                        return;
+                        std::process::exit(0);
                     }
                 }
                 Err(e) => {
@@ -357,7 +357,6 @@ impl Utils {
     }
 
     fn download_file_windows(url: &str, working_path: &Path) -> Result<PathBuf, String> {
-        let working_path: &Path = Path::new(working_path);
         if !working_path.exists() {
             return Err(format!(
                 "Working path {} does not exist",
@@ -365,16 +364,24 @@ impl Utils {
             ));
         }
 
-        let file_name: &str = url.split('/').last().unwrap_or("invalid_file_name");
-        let save_path: PathBuf = working_path.join(file_name);
+        let file_name = url.split('/').last().unwrap_or("invalid_file_name");
+        let save_path = working_path.join(file_name);
 
-        let status = Command::new("curl")
-            .arg("-L")
-            .arg(url)
-            .arg("-o")
-            .arg(save_path.to_str().unwrap())
+        let ps_command = format!(
+            "Invoke-WebRequest -Uri '{}' -OutFile '{}'",
+            url,
+            save_path.display()
+        );
+
+        LogsInstance::print(
+            format!("Downloading: {}", url).as_str(),
+            colored::Color::BrightWhite,
+        );
+
+        let status = Command::new("powershell")
+            .args(&["-Command", &ps_command])
             .status()
-            .map_err(|e| format!("Failed to execute curl: {}", e))?;
+            .map_err(|e| format!("Failed to execute PowerShell: {}", e))?;
 
         if !status.success() {
             return Err(format!("Download failed with status: {}", status));
@@ -472,8 +479,12 @@ impl Utils {
 
         let parent_str: &str = parent_dir.to_str().ok_or("Invalid parent directory")?;
 
+        LogsInstance::print(
+            format!("Decompressing: {} to {}", compressed_str, parent_str).as_str(),
+            colored::Color::White,
+        );
+
         let status = Command::new("powershell")
-            .arg("-Command")
             .arg(format!(
                 "Expand-Archive -Path '{}' -DestinationPath '{}' -Force",
                 compressed_str, parent_str
@@ -684,7 +695,7 @@ pub struct GameVersion {
 
 impl GameVersion {
     pub fn from_str(version: &str) -> Option<Self> {
-        let cleaned = version.strip_suffix(".txt").unwrap_or(version);
+        let cleaned: &str = version.strip_suffix(".txt").unwrap_or(version);
 
         let mut base_part: &str = cleaned;
         let mut pre_version: u32 = 0;
@@ -765,14 +776,14 @@ impl GameVersion {
         self.rc_version += 1;
     }
 
-    pub fn is_pre(&mut self) -> bool {
+    pub fn is_pre(&self) -> bool {
         if self.pre_version > 0 {
             return true;
         }
         false
     }
 
-    pub fn is_rc(&mut self) -> bool {
+    pub fn is_rc(&self) -> bool {
         if self.rc_version > 0 {
             return true;
         }
@@ -784,7 +795,7 @@ impl GameVersion {
         self.rc_version = 0;
     }
 
-    pub fn equals(&mut self, game_version: GameVersion) -> bool {
+    pub fn equals(&self, game_version: GameVersion) -> bool {
         if self.major == game_version.major
             && self.minor == game_version.minor
             && self.patch == game_version.patch
@@ -796,14 +807,14 @@ impl GameVersion {
         return false;
     }
 
-    pub fn empty(&mut self) -> bool {
+    pub fn empty(&self) -> bool {
         if self.major == 0 && self.minor == 0 && self.patch == 0 {
             return true;
         }
         return false;
     }
 
-    pub fn bigger_than(&mut self, version: GameVersion) -> bool {
+    pub fn bigger_than(&self, version: GameVersion) -> bool {
         if version.major > self.major {
             return false;
         } else if version.minor > self.minor {
