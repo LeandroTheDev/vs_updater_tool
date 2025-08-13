@@ -13,7 +13,7 @@ mod arguments;
 mod logger;
 mod utils;
 
-const BASE_URL: &str = "https://cdn.vintagestory.at/gamefiles/stable/";
+const BASE_URL: &str = "https://cdn.vintagestory.at/gamefiles/";
 const MODS_URL: &str = "https://mods.vintagestory.at/";
 
 fn main() {
@@ -131,6 +131,10 @@ fn update_game(loaded_arguments: &arguments::Items) {
         return;
     }
 
+    if loaded_arguments.no_pre {
+        game_version.remove_pre_and_rc();
+    }
+
     let actual_game_version: GameVersion = game_version.clone();
 
     let game_type: String;
@@ -160,13 +164,24 @@ fn update_game(loaded_arguments: &arguments::Items) {
     // If not we try to get it
     else {
         loop {
-            let ping_url: String = format!(
-                "{}{}{}{}",
-                MODS_URL,
-                game_type,
-                game_version.to_string(),
-                Utils::get_compress_type()
-            );
+            let ping_url: String;
+            if game_version.is_pre() || game_version.is_rc() {
+                ping_url = format!(
+                    "{}unstable/{}{}{}",
+                    BASE_URL,
+                    game_type,
+                    game_version.to_string(),
+                    Utils::get_compress_type()
+                );
+            } else {
+                ping_url = format!(
+                    "{}stable/{}{}{}",
+                    BASE_URL,
+                    game_type,
+                    game_version.to_string(),
+                    Utils::get_compress_type()
+                );
+            }
 
             LogsInstance::print(
                 format!("Pinging: {}", ping_url).as_str(),
@@ -179,37 +194,83 @@ fn update_game(loaded_arguments: &arguments::Items) {
                     colored::Color::Green,
                 );
                 last_version = game_version.clone();
-                game_version.increment_patch();
-            } else {
-                if game_version.minor != actual_game_version.minor {
-                    if game_version.major != actual_game_version.major {
-                        LogsInstance::print(
-                            format!(
-                                "Latest version available: {}, installed version: {}",
-                                last_version.to_string(),
-                                actual_game_version.to_string()
-                            )
-                            .as_str(),
-                            colored::Color::BrightGreen,
-                        );
-                        break;
+
+                if loaded_arguments.no_pre {
+                    if game_version.is_pre() {
+                        game_version.increment_pre();
+                    } else if game_version.is_rc() {
+                        game_version.increment_rc();
                     } else {
-                        game_version.increment_major();
+                        game_version.increment_patch();
                     }
                 } else {
-                    game_version.increment_minor();
+                    game_version.increment_patch();
+                }
+            } else {
+                if loaded_arguments.no_pre {
+                    if game_version.minor != actual_game_version.minor {
+                        if game_version.major != actual_game_version.major {
+                            LogsInstance::print(
+                                format!(
+                                    "Latest version available: {}, installed version: {}",
+                                    last_version.to_string(),
+                                    actual_game_version.to_string()
+                                )
+                                .as_str(),
+                                colored::Color::BrightGreen,
+                            );
+                            break;
+                        } else {
+                            game_version.increment_major();
+                        }
+                    } else {
+                        game_version.increment_minor();
+                    }
+                } else {
+                    if game_version.pre_version != actual_game_version.pre_version {
+                        if game_version.rc_version != actual_game_version.rc_version {
+                            if game_version.minor != actual_game_version.minor {
+                                if game_version.major != actual_game_version.major {
+                                    LogsInstance::print(
+                                        format!(
+                                            "Latest version available: {}, installed version: {}",
+                                            last_version.to_string(),
+                                            actual_game_version.to_string()
+                                        )
+                                        .as_str(),
+                                        colored::Color::BrightGreen,
+                                    );
+                                    break;
+                                } else {
+                                    game_version.increment_major();
+                                }
+                            } else {
+                                game_version.increment_minor();
+                            }
+                        } else {
+                            game_version.increment_rc();
+                        }
+                    } else {
+                        game_version.increment_pre();
+                    }
                 }
             }
         }
-
         if last_version.empty() {
             LogsInstance::print("No available versions found", colored::Color::BrightRed);
             Utils::clear_temp(&temp_dir, &working_path);
             return;
         }
 
-        if last_version.equals(actual_game_version) {
+        if last_version.equals(actual_game_version.clone()) {
             LogsInstance::print("No update needed! :D", colored::Color::BrightGreen);
+            Utils::clear_temp(&temp_dir, &working_path);
+            return;
+        } else if last_version.bigger_than(actual_game_version.clone()) {
+            LogsInstance::print(
+                "No update needed! :D (Your version is bigger than available versions)",
+                colored::Color::BrightGreen,
+            );
             Utils::clear_temp(&temp_dir, &working_path);
             return;
         }

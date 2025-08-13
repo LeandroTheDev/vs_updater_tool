@@ -510,22 +510,6 @@ impl Utils {
         let _ = std::fs::remove_dir_all(&temp_dir);
     }
 
-    pub fn get_mod_version(_: &PathBuf, mod_name: &OsStr) -> Option<String> {
-        let filename: &str = mod_name.to_str()?;
-
-        let trimmed: &str = if filename.ends_with(".zip") {
-            filename.strip_suffix(".zip")?
-        } else {
-            filename
-        };
-
-        let last_underscore: usize = trimmed.rfind('_')?;
-
-        let version: &str = &trimmed[last_underscore + 1..];
-
-        return Some(version.to_string());
-    }
-
     pub fn extract_id_and_filename(link: &str) -> Option<(String, String)> {
         // Expected: "/download/fileid/filename_fileversion.zip"
         let parts: Vec<&str> = link.split('/').collect();
@@ -694,13 +678,31 @@ pub struct GameVersion {
     pub major: u32,
     pub minor: u32,
     pub patch: u32,
+    pub pre_version: u32,
+    pub rc_version: u32,
 }
 
 impl GameVersion {
     pub fn from_str(version: &str) -> Option<Self> {
         let cleaned = version.strip_suffix(".txt").unwrap_or(version);
 
-        let parts: Vec<&str> = cleaned.split('.').collect();
+        let mut base_part: &str = cleaned;
+        let mut pre_version: u32 = 0;
+        let mut rc_version: u32 = 0;
+
+        if let Some((base, suffix)) = cleaned.split_once('-') {
+            base_part = base;
+            let parts: Vec<&str> = suffix.split('.').collect();
+            if parts.len() == 2 {
+                match parts[0] {
+                    "pre" => pre_version = parts[1].parse().ok()?,
+                    "rc" => rc_version = parts[1].parse().ok()?,
+                    _ => return None,
+                }
+            }
+        }
+
+        let parts: Vec<&str> = base_part.split('.').collect();
         if parts.len() != 3 {
             return None;
         }
@@ -709,32 +711,85 @@ impl GameVersion {
             major: parts[0].parse().ok()?,
             minor: parts[1].parse().ok()?,
             patch: parts[2].parse().ok()?,
+            pre_version,
+            rc_version,
         })
     }
 
     pub fn to_string(&self) -> String {
+        if self.pre_version > 0 {
+            return format!(
+                "{}.{}.{}-pre.{}",
+                self.major, self.minor, self.patch, self.pre_version
+            );
+        }
+
+        if self.rc_version > 0 {
+            return format!(
+                "{}.{}.{}-rc.{}",
+                self.major, self.minor, self.patch, self.rc_version
+            );
+        }
+
         format!("{}.{}.{}", self.major, self.minor, self.patch)
     }
 
     pub fn increment_patch(&mut self) {
+        self.rc_version = 0;
+        self.pre_version = 0;
         self.patch += 1;
     }
 
     pub fn increment_minor(&mut self) {
+        self.rc_version = 0;
+        self.pre_version = 0;
         self.patch = 0;
         self.minor += 1;
     }
 
     pub fn increment_major(&mut self) {
+        self.rc_version = 0;
+        self.pre_version = 0;
         self.patch = 0;
         self.minor = 0;
         self.major += 1;
+    }
+
+    pub fn increment_pre(&mut self) {
+        self.rc_version = 0;
+        self.pre_version += 1;
+    }
+
+    pub fn increment_rc(&mut self) {
+        self.pre_version = 0;
+        self.rc_version += 1;
+    }
+
+    pub fn is_pre(&mut self) -> bool {
+        if self.pre_version > 0 {
+            return true;
+        }
+        false
+    }
+
+    pub fn is_rc(&mut self) -> bool {
+        if self.rc_version > 0 {
+            return true;
+        }
+        false
+    }
+
+    pub fn remove_pre_and_rc(&mut self) {
+        self.pre_version = 0;
+        self.rc_version = 0;
     }
 
     pub fn equals(&mut self, game_version: GameVersion) -> bool {
         if self.major == game_version.major
             && self.minor == game_version.minor
             && self.patch == game_version.patch
+            && self.pre_version == game_version.pre_version
+            && self.rc_version == game_version.rc_version
         {
             return true;
         }
@@ -746,5 +801,24 @@ impl GameVersion {
             return true;
         }
         return false;
+    }
+
+    pub fn bigger_than(&mut self, version: GameVersion) -> bool {
+        if version.major > self.major {
+            return false;
+        } else if version.minor > self.minor {
+            return false;
+        } else if version.patch > self.patch {
+            return false;
+        }
+        // If provided version contains rc and pre version from this game version exists, automatically provided is bigger
+        else if version.rc_version > 0 && self.pre_version > 0 {
+            return false;
+        }
+        // If provided rc version is bigger than this rc version and this rc version exists
+        else if version.rc_version > self.rc_version && self.rc_version > 0 {
+            return false;
+        }
+        true
     }
 }

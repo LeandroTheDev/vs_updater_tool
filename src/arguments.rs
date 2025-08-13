@@ -29,4 +29,7 @@ pub(crate) struct Items {
 
     #[arg(long)]
     pub no_pre_mods: bool,
+
+    #[arg(long)]
+    pub no_pre: bool,
 }
