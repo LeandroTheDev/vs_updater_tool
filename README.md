@@ -10,8 +10,7 @@
 - Windows users: download the .exe, put it inside the your vintage story server folder, double click it to open, and should download it normally
 - Linux users: download the executable, put it inside your vintage story folder, open terminal inside that folder: ``./vs_updater_tool -- --game-type server`` if is a server or ``./vs_updater_tool -- --game-type client`` if is a client, and it should download it for you automatically
 
-``Linux Users``
-Linux users or even windows can use the ``update.sh`` script to automatically update the game client
+Linux users or even windows can use the ``update.sh`` script to automatically update the game client, but you might change the script arguments on last lines
 
 ## ``IMPORTANT``
 - Closing the vs updater tool before completing might result in files lost
