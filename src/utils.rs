@@ -1,3 +1,4 @@
+use std::env;
 use std::ffi::OsStr;
 use std::fs;
 use std::io;
@@ -17,6 +18,25 @@ use crate::logger::LogsInstance;
 pub struct Utils;
 
 impl Utils {
+    pub fn command_exists(cmd: &str) -> bool {
+        if let Ok(paths) = env::var("PATH") {
+            for p in env::split_paths(&paths) {
+                let full_path = p.join(cmd);
+                if full_path.exists() {
+                    return true;
+                }
+                #[cfg(windows)]
+                {
+                    let full_path_exe = p.join(format!("{}.exe", cmd));
+                    if full_path_exe.exists() {
+                        return true;
+                    }
+                }
+            }
+        }
+        false
+    }
+
     pub fn move_item(from: &Path, to: &Path) -> io::Result<()> {
         let from_path: &Path = from.as_ref();
         let to_dir: &Path = to.as_ref();
@@ -816,18 +836,23 @@ impl GameVersion {
 
     pub fn bigger_than(&self, version: GameVersion) -> bool {
         if version.major > self.major {
+            print!("1");
             return false;
         } else if version.minor > self.minor {
+            print!("2");
             return false;
         } else if version.patch > self.patch {
+            print!("3");
             return false;
         }
         // If provided version contains rc and pre version from this game version exists, automatically provided is bigger
         else if version.rc_version > 0 && self.pre_version > 0 {
+            print!("4");
             return false;
         }
         // If provided rc version is bigger than this rc version and this rc version exists
         else if version.rc_version > self.rc_version && self.rc_version > 0 {
+            print!("5");
             return false;
         }
         true

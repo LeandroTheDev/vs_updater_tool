@@ -2,6 +2,7 @@ use std::{
     env, fs,
     io::Write,
     path::{Path, PathBuf},
+    process,
 };
 
 use clap::Parser;
@@ -21,6 +22,13 @@ fn main() {
     match colored::control::set_virtual_terminal(true) {
         Ok(_) => {}
         Err(_) => eprintln!("Cannot enable virtual terminal"),
+    }
+
+    if cfg!(target_os = "linux") {
+        if !Utils::command_exists("wget") {
+            LogsInstance::print("Missing 'wget' dependency", colored::Color::BrightRed);
+            process::exit(1);
+        }
     }
 
     let loaded_arguments: arguments::Items = arguments::Items::parse();
@@ -315,7 +323,7 @@ fn update_game(loaded_arguments: &arguments::Items) {
             LogsInstance::print("No update needed! :D", colored::Color::BrightGreen);
             Utils::clear_temp(&temp_dir, &working_path);
             return;
-        } else if last_version.bigger_than(actual_game_version.clone()) {
+        } else if !last_version.bigger_than(actual_game_version.clone()) {
             LogsInstance::print(
                 "No update needed! :D (Your version is bigger than available versions)",
                 colored::Color::BrightGreen,
