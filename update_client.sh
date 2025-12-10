@@ -33,8 +33,8 @@ if [[ ! -f "$EXECUTABLE" ]]; then
 fi
 
 "$EXECUTABLE" \
-    --ignore-folders ClientData \
-    --ignore-files run.sh,update.sh \
+    --ignore-folders ClientData,ServerData \
+    --ignore-files run.sh,update_client.sh,update_server.sh,update_mods.sh,add_mods.sh,server-run.sh \
     --game-type client \
     --working-path "$VINTAGE_STORY" \
-    --ignore-mod-update # Optional
+#    --ignore-mod-update

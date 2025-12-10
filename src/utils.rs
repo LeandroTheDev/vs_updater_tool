@@ -702,6 +702,54 @@ impl Utils {
 
         Some(new_path)
     }
+
+    pub fn get_mod_last_id_name_by_ping_url(
+        ping_url: &String,
+        no_pre_mods: bool,
+    ) -> (Option<i64>, Option<String>) {
+        let mut biggest_id: Option<i64> = None;
+        let mut biggest_filename: Option<String> = None;
+
+        if let Some(html) = Utils::url_result(&ping_url) {
+            let links: Vec<String> = Utils::extract_download_links(&html);
+            for link in links {
+                if let Some((id_str, filename)) = Utils::extract_id_and_filename(&link) {
+                    if no_pre_mods {
+                        if filename.contains("-pre") || filename.contains("-rc") {
+                            continue;
+                        }
+                    }
+                    match id_str.parse::<i64>() {
+                        Ok(id) => {
+                            biggest_filename = Some(filename);
+                            biggest_id = Some(match biggest_id {
+                                Some(current_max) => current_max.max(id),
+                                None => id,
+                            });
+                        }
+                        Err(_) => {
+                            LogsInstance::print(
+                                format!("Failed to parse id as integer: {}", id_str).as_str(),
+                                colored::Color::BrightRed,
+                            );
+                        }
+                    }
+                } else {
+                    LogsInstance::print(
+                        format!("Invalid format link: {}", link).as_str(),
+                        colored::Color::BrightRed,
+                    );
+                }
+            }
+        } else {
+            LogsInstance::print(
+                format!("Failed to get mod html: {}", ping_url).as_str(),
+                colored::Color::BrightRed,
+            );
+        }
+
+        (biggest_id, biggest_filename)
+    }
 }
 
 #[derive(Debug, Clone)]

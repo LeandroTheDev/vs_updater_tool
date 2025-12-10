@@ -9,6 +9,9 @@ pub(crate) struct Items {
     #[arg(long, value_delimiter = ',')]
     pub ignore_files: Option<Vec<String>>,
 
+    #[arg(long, value_delimiter = ',')]
+    pub generate_modpack: Option<Vec<String>>,
+
     #[arg(long)]
     pub working_path: Option<String>,
 

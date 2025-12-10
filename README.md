@@ -25,6 +25,8 @@ Do you want to delete it? (y,N):
 - > This will save the folders to .temp folder, and will be replaced after updating the game (Does not accept recursive folders like ServerData/Mods)
 - ignore-files: ``--ignore-files start-server.sh,run.sh``, (Does not accept recursive)
 - > This will save the files to .temp folder, and will be replaced after updating the game
+- generate-modpack: ``--generate-modpack 123,1234,12345``
+- > Automatically sets this mods id to be updated by vs_updater, requires ``--mods-path`` to be set
 - working-path: ``--working-path /home/user/vintagestory/``
 - > Currently vintagestory folder, if not set it will pickup from the system variable: ``VINTAGE_STORY`` or if also not exist it will use the same folder from executable
 - game-type: ``--game-type server`` or ``--game-type client``
