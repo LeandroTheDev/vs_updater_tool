@@ -3,12 +3,17 @@
 - Windows Dependencies: ``Invoke-WebRequest``, ``Expand-Archive`` (Generally a fresh windows install contains all this features)
 
 ## Compatibility
-- Windows (Servers Only)
+- Windows (Servers Only and Mods update)
 - Linux
 
 ### Usage
 - Windows users: download the .exe, put it inside the your vintage story server folder, double click it to open, and should download it normally
 - Linux users: download the executable, put it inside your vintage story folder, open terminal inside that folder: ``./vs_updater_tool -- --game-type server`` if is a server or ``./vs_updater_tool -- --game-type client`` if is a client, and it should download it for you automatically
+### Scripts
+- add_mods: The scripts will ask you for the mod id, you can get the mod id in the mod url from vintage story mods
+- update_client: Updates only the game
+- update_mods: Updates only the mod
+- update_server: Updates the server
 
 Linux users or even windows can use the ``update.sh`` script to automatically update the game client, but you might change the script arguments on last lines
 
