@@ -32,6 +32,23 @@ if [[ ! -f "$EXECUTABLE" ]]; then
     exit 1
 fi
 
+if [ -z "$VINTAGE_STORY_MODS" ]; then
+    echo "VINTAGE_STORY_MODS is not defined."
+    
+    while true; do
+        read -p "Paste the Vintage Story Mods path: " input
+
+        if [ -n "$input" ]; then
+            VINTAGE_STORY_MODS="$input"
+            export VINTAGE_STORY_MODS
+            break
+        else
+            echo "Invalid path."
+        fi
+    done
+fi
+
 "$EXECUTABLE" \
     --working-path "$VINTAGE_STORY" \
+    --mods-path "$VINTAGE_STORY_MODS" \
     --ignore-game-update
