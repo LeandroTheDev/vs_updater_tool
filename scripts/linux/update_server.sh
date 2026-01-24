@@ -37,4 +37,3 @@ fi
     --ignore-files run.sh,update_client.sh,update_server.sh,update_mods.sh,add_mods.sh,server-run.sh \
     --game-type server \
     --working-path "$VINTAGE_STORY" \
-#    --ignore-mod-update # Optional
