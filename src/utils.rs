@@ -130,6 +130,67 @@ impl Utils {
         std::process::exit(1);
     }
 
+    pub fn patch_arm64(working_path: &Path, version: &str) -> Result<(), String> {
+        // Remove x64-only binaries
+        let x64_files = [
+            "VintagestoryServer",
+            "VintagestoryServer.deps.json",
+            "VintagestoryServer.dll",
+            "VintagestoryServer.pdb",
+            "VintagestoryServer.runtimeconfig.json",
+        ];
+        for filename in &x64_files {
+            let path = working_path.join(filename);
+            if path.exists() {
+                let _ = fs::remove_file(&path);
+            }
+        }
+        let lib_path = working_path.join("Lib");
+        if lib_path.exists() {
+            let _ = fs::remove_dir_all(&lib_path);
+        }
+
+        // Download ARM64 binaries from GitHub
+        let arm64_url = format!(
+            "https://github.com/anegostudios/VintagestoryServerArm64/releases/download/{}/vs_server_linux-arm64_{}.tar.gz",
+            version, version
+        );
+
+        LogsInstance::print(
+            format!("Downloading ARM64 binaries: {}", arm64_url).as_str(),
+            colored::Color::White,
+        );
+
+        let arm64_path = Utils::download_file(&arm64_url, working_path)?;
+
+        LogsInstance::print("Extracting ARM64 binaries...", colored::Color::White);
+
+        let parent_dir = arm64_path.parent().unwrap_or_else(|| Path::new("."));
+
+        let status = Command::new("tar")
+            .arg("-xzf")
+            .arg(arm64_path.to_str().ok_or("Invalid file path")?)
+            .arg("-C")
+            .arg(parent_dir.to_str().ok_or("Invalid parent directory")?)
+            .status()
+            .map_err(|e| format!("Failed to execute tar: {}", e))?;
+
+        if !status.success() {
+            return Err(format!("Tar command failed with status: {}", status));
+        }
+
+        // Move server/* to working_path
+        let server_dir = parent_dir.join("server");
+        if server_dir.exists() {
+            let _ = Utils::move_items(&server_dir, working_path);
+            let _ = fs::remove_dir_all(&server_dir);
+        }
+
+        let _ = fs::remove_file(&arm64_path);
+
+        Ok(())
+    }
+
     pub fn get_compress_type() -> String {
         if cfg!(target_os = "windows") {
             String::from(".zip")

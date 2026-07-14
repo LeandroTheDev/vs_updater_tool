@@ -145,6 +145,9 @@ fn update_game(loaded_arguments: &arguments::Items) {
 
     let actual_game_version: GameVersion = game_version.clone();
 
+    let detected_arch = if std::env::consts::ARCH == "aarch64" { "arm64" } else { "x64" };
+    let arch: &str = loaded_arguments.arch.as_deref().unwrap_or(detected_arch);
+
     let game_type: String;
     if let Some(_type) = &loaded_arguments.game_type {
         game_type = Utils::get_game_type(&_type);
@@ -397,6 +400,19 @@ fn update_game(loaded_arguments: &arguments::Items) {
                 colored::Color::BrightRed,
             );
             return;
+        }
+    }
+
+    if arch == "arm64" {
+        match Utils::patch_arm64(&working_path, &last_version.to_string()) {
+            Ok(_) => LogsInstance::print("ARM64 binaries applied!", colored::Color::BrightGreen),
+            Err(e) => {
+                LogsInstance::print(
+                    format!("Failed to apply ARM64 patch: {}", e).as_str(),
+                    colored::Color::BrightRed,
+                );
+                return;
+            }
         }
     }
 

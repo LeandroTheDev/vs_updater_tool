@@ -35,4 +35,7 @@ pub(crate) struct Items {
 
     #[arg(long)]
     pub no_pre: bool,
+
+    #[arg(long)]
+    pub arch: Option<String>,
 }
