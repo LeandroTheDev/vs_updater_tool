@@ -4,7 +4,8 @@
 
 ## Compatibility
 - Windows (Servers Only and Mods update)
-- Linux
+- Linux x86_64
+- Linux ARM64 (auto-detected, downloads ARM64 binaries from [VintagestoryServerArm64](https://github.com/anegostudios/VintagestoryServerArm64))
 
 ### Usage
 - Windows users: download the .exe, put it inside the your vintage story server folder, double click it to open, and should download it normally
@@ -48,6 +49,8 @@ Do you want to delete it? (y,N):
 - > Ignore unstable versions of mods
 - no-pre: ``--no-pre``
 - > Ignore unstable versions of vintage story
+- arch: ``--arch arm64`` or ``--arch x64``
+- > Force a specific architecture. Defaults to auto-detection (ARM64 machines automatically use ARM64 binaries)
 
 ## Mod Update
 To automatically update the mods you will need to get the id from the mod in vs database, the easy way to get the id is to go to the mod page: ``https://mods.vintagestory.at/rpgoverlay``, the ``rpgoverlay`` is the mod id, copy that and go to ``mods-path`` and create a new folder for example: ``rpgoverlay_1.0.0`` and create a new file inside that folder: ``modid.txt`` paste the mod id inside the file and add a 0 on next line, mods should automatically update when running the executable
@@ -63,3 +66,43 @@ Full example: ``./vs_updater_tool -- --ignore-folders ServerData,ServerData2 --i
 No mods example: ``./vs_updater_tool -- --ignore-folders ServerData,ServerData2 --ignore-files start-server.sh,run.sh --working-path /home/user/vintagestory/ --game-type server --ignore-mod-update``
 
 Only mods example: ``./vs_updater_tool -- --ignore-folders ServerData,ServerData2 --ignore-files start-server.sh,run.sh --working-path /home/user/vintagestory/ --game-type server --ignore-game-update --mods-path /home/user/vintagestory/ServerData/Mods/``
+
+## Building
+
+### Requirements
+- [Rust](https://rustup.rs/) installed via `rustup`
+
+### Linux x86_64
+```bash
+cargo build --release
+# Output: target/release/vintagestory_updater
+```
+
+### Windows x86_64
+```bash
+rustup target add x86_64-pc-windows-gnu
+cargo build --release --target x86_64-pc-windows-gnu
+# Output: target/x86_64-pc-windows-gnu/release/vintagestory_updater.exe
+```
+
+### Linux ARM64 (glibc — most distros)
+```bash
+# Install cross-linker (Arch Linux)
+sudo pacman -S aarch64-linux-gnu-gcc
+
+rustup target add aarch64-unknown-linux-gnu
+cargo build --release --target aarch64-unknown-linux-gnu
+# Output: target/aarch64-unknown-linux-gnu/release/vintagestory_updater
+```
+
+### Linux ARM64 (musl — static, works on NixOS and any distro)
+```bash
+# Install musl cross-linker (Arch Linux)
+sudo pacman -S musl-aarch64
+
+rustup target add aarch64-unknown-linux-musl
+cargo build --release --target aarch64-unknown-linux-musl
+# Output: target/aarch64-unknown-linux-musl/release/vintagestory_updater
+```
+
+> For other distros, replace the `pacman` commands with the equivalent package manager.
