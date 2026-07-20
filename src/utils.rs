@@ -150,10 +150,24 @@ impl Utils {
             let _ = fs::remove_dir_all(&lib_path);
         }
 
-        // Download ARM64 binaries from GitHub
-        let arm64_url = format!(
+        // Resolve which ARM64 version to download — exact match or latest available
+        let arm64_version = if Utils::url_exists(&format!(
             "https://github.com/anegostudios/VintagestoryServerArm64/releases/download/{}/vs_server_linux-arm64_{}.tar.gz",
             version, version
+        )) {
+            version.to_string()
+        } else {
+            LogsInstance::print(
+                format!("ARM64 release for {} not found, fetching latest available...", version).as_str(),
+                colored::Color::Yellow,
+            );
+            Utils::get_latest_arm64_release()
+                .ok_or_else(|| "Failed to fetch latest ARM64 release from GitHub".to_string())?
+        };
+
+        let arm64_url = format!(
+            "https://github.com/anegostudios/VintagestoryServerArm64/releases/download/{}/vs_server_linux-arm64_{}.tar.gz",
+            arm64_version, arm64_version
         );
 
         LogsInstance::print(
@@ -762,6 +776,31 @@ impl Utils {
             .join(&new_name);
 
         Some(new_path)
+    }
+
+    pub fn get_latest_arm64_release() -> Option<String> {
+        let api_url = "https://api.github.com/repos/anegostudios/VintagestoryServerArm64/releases/latest";
+
+        let output = Command::new("wget")
+            .arg("-q")
+            .arg("-O")
+            .arg("-")
+            .arg("--header=User-Agent: vs-updater")
+            .arg(api_url)
+            .output()
+            .ok()?;
+
+        if !output.status.success() {
+            return None;
+        }
+
+        let body = String::from_utf8(output.stdout).ok()?;
+
+        // Extract "tag_name": "1.22.0"
+        let re = Regex::new(r#""tag_name":\s*"([^"]+)""#).ok()?;
+        re.captures(&body)
+            .and_then(|cap| cap.get(1))
+            .map(|m| m.as_str().to_string())
     }
 
     pub fn get_mod_last_id_name_by_ping_url(
